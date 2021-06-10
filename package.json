@@ -1,5 +1,5 @@
 {
-  "name": "@kyvg/vue3-notification",
+  "name": "@jojoxd/vue3-notification",
   "description": "Vue.js Notification Library",
   "version": "2.3.2",
   "author": "kyvg",
@@ -19,7 +19,7 @@
     "lint": "eslint ./src/index.ts",
     "preversion": "npm run test && npm run release && git add -A dist"
   },
-  "types": "dist/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "main": "dist/index.common.js",
   "module": "dist/index.esm.js",
   "repository": {
@@ -30,9 +30,22 @@
     "url": "https://github.com/kyvg/vue3-notification/issues"
   },
   "license": "MIT",
-  "peerDependencies": {
-    "vue": "^3.0.11"
+
+  "dependencies": {
+    "vue-demi": "latest"
   },
+
+  "peerDependencies": {
+    "@vue/composition-api": "^1.0.0-beta.1",
+    "vue": "^2.0.0 || >=3.0.0-rc.0"
+  },
+
+  "peerDependenciesMeta": {
+    "@vue/composition-api": {
+      "optional": true
+    }
+  },
+
   "keywords": [
     "web",
     "front-end",

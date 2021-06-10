@@ -10,22 +10,14 @@
   </transition-group>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script setup lang="ts">
+import { defineEmit } from "vue-demi";
 
-export default defineComponent({
-  name: 'velocity-group',
-  emits: ['afterLeave', 'leave', 'enter'],
-  methods: {
-    enter(el: Element, complete: () => void) {
-      this.$emit('enter', { el, complete });
-    },
-    leave(el: Element, complete: () => void) {
-      this.$emit('leave', { el, complete });
-    },
-    afterLeave() {
-      this.$emit('afterLeave');
-    },
-  },
-});
+const emit = defineEmit(['afterLeave', 'leave', 'enter']);
+
+const enter = (el: Element, complete: () => void) => emit('enter', { el, complete });
+
+const leave = (el: Element, complete: () => void) => emit('leave', { el, complete });
+
+const afterLeave = () => emit('afterLeave');
 </script>

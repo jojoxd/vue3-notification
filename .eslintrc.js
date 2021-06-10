@@ -87,5 +87,12 @@ module.exports = {
         '@typescript-eslint/indent': ['error', 4],
       },
     },
+    {
+      files: '*.vue',
+      rules: {
+        'no-unused-vars': ['off'],
+        '@typescript-eslint/no-unused-vars': ['off'],
+      },
+    },
   ],
 };

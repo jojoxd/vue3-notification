@@ -7,6 +7,7 @@ export const notify = (args: NotificationsOptions | string): void => {
   }
 
   if (typeof args === 'object') {
+    console.log(args);
     events.emit('add', args);
   }
 };

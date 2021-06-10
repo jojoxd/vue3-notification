@@ -1,10 +1,4 @@
-import { defineComponent, openBlock, createBlock, TransitionGroup, withCtx, renderSlot, resolveDynamicComponent, Fragment, renderList, createCommentVNode, createVNode } from 'vue';
-
-function mitt(n){return {all:n=n||new Map,on:function(t,e){var i=n.get(t);i&&i.push(e)||n.set(t,[e]);},off:function(t,e){var i=n.get(t);i&&i.splice(i.indexOf(e)>>>0,1);},emit:function(t,e){(n.get(t)||[]).slice().map(function(n){n(e);}),(n.get("*")||[]).slice().map(function(n){n(t,e);});}}}
-
-const events = mitt();
-
-const params = new Map();
+import { defineComponent, toRefs, ref, computed, onMounted, openBlock, createBlock, unref, renderSlot, resolveDynamicComponent, withCtx, Fragment, renderList, createCommentVNode, createVNode } from 'vue';
 
 const directions = {
     x: ['left', 'center', 'right'],
@@ -82,62 +76,6 @@ var defaults = {
     },
 };
 
-var script$2 = defineComponent({
-    name: 'velocity-group',
-    emits: ['afterLeave', 'leave', 'enter'],
-    methods: {
-        enter(el, complete) {
-            this.$emit('enter', { el, complete });
-        },
-        leave(el, complete) {
-            this.$emit('leave', { el, complete });
-        },
-        afterLeave() {
-            this.$emit('afterLeave');
-        },
-    },
-});
-
-function render$2(_ctx, _cache, $props, $setup, $data, $options) {
-  return (openBlock(), createBlock(TransitionGroup, {
-    tag: "span",
-    css: false,
-    onEnter: _ctx.enter,
-    onLeave: _ctx.leave,
-    onAfterLeave: _ctx.afterLeave
-  }, {
-    default: withCtx(() => [
-      renderSlot(_ctx.$slots, "default")
-    ]),
-    _: 3 /* FORWARDED */
-  }, 8 /* PROPS */, ["onEnter", "onLeave", "onAfterLeave"]))
-}
-
-script$2.render = render$2;
-script$2.__file = "src/VelocityGroup.vue";
-
-var script$1 = defineComponent({
-    name: 'css-group',
-    props: {
-        name: { type: String, required: true },
-    },
-});
-
-function render$1(_ctx, _cache, $props, $setup, $data, $options) {
-  return (openBlock(), createBlock(TransitionGroup, {
-    tag: "span",
-    name: _ctx.name
-  }, {
-    default: withCtx(() => [
-      renderSlot(_ctx.$slots, "default")
-    ]),
-    _: 3 /* FORWARDED */
-  }, 8 /* PROPS */, ["name"]))
-}
-
-script$1.render = render$1;
-script$1.__file = "src/CssGroup.vue";
-
 const floatRegexp = '[-+]?[0-9]*.?[0-9]+';
 const types = [
     {
@@ -189,16 +127,12 @@ const parse = (value) => {
     }
 };
 
-const STATE = {
-    IDLE: 0,
-    DESTROYED: 2,
-};
+function mitt(n){return {all:n=n||new Map,on:function(t,e){var i=n.get(t);i&&i.push(e)||n.set(t,[e]);},off:function(t,e){var i=n.get(t);i&&i.splice(i.indexOf(e)>>>0,1);},emit:function(t,e){(n.get(t)||[]).slice().map(function(n){n(e);}),(n.get("*")||[]).slice().map(function(n){n(t,e);});}}}
+
+const events = mitt();
+
 var script = defineComponent({
-    name: 'notifications',
-    components: {
-        VelocityGroup: script$2,
-        CssGroup: script$1,
-    },
+    expose: [],
     props: {
         group: {
             type: String,
@@ -267,251 +201,258 @@ var script = defineComponent({
         },
     },
     emits: ['click', 'destroy'],
-    data() {
-        return {
-            list: [],
-            velocity: params.get('velocity'),
-            timerControl: null,
-        };
-    },
-    computed: {
-        actualWidth() {
-            return parse(this.width);
-        },
-        isVA() {
-            return this.animationType === 'velocity';
-        },
-        componentName() {
-            return this.isVA ? 'velocity-group' : 'css-group';
-        },
-        styles() {
-            const { x, y } = listToDirection(this.position);
-            const width = this.actualWidth.value;
-            const suffix = this.actualWidth.type;
-            const styles = {
-                width: width + suffix,
+    setup(__props, { emit }) {
+        const props = __props;
+        const { group, width, reverse, position, classes, animationType, animation, animationName, speed, cooldown, duration, delay, max, ignoreDuplicates, closeOnClick, pauseOnHover, } = toRefs(props);
+        const list = ref([]);
+        const velocity = ref( /* TODO */);
+        const timerControl = ref(null);
+        // @TODO: Refs
+        const actualWidth = computed(() => {
+            return parse(width.value);
+        });
+        const isVA = computed(() => {
+            return animationType.value === 'velocity';
+        });
+        const componentName = computed(() => {
+            return isVA.value ? 'velocity-group' : 'css-group';
+        });
+        const styles = computed(() => {
+            const { x, y } = listToDirection(position.value);
+            const _width = actualWidth.value.value;
+            const suffix = actualWidth.value.type;
+            const _styles = {
+                width: _width + suffix,
             };
             if (y) {
-                styles[y] = '0px';
+                _styles[y] = '0px';
             }
             if (x) {
                 if (x === 'center') {
-                    styles['left'] = `calc(50% - ${+width / 2}${suffix})`;
+                    _styles['left'] = `calc(50% - ${+_width / 2}${suffix})`;
                 }
                 else {
-                    styles[x] = '0px';
+                    _styles[x] = '0px';
                 }
             }
-            return styles;
-        },
-        active() {
-            return this.list.filter(v => v.state !== STATE.DESTROYED);
-        },
-        botToTop() {
+            return _styles;
+        });
+        const active = computed(() => {
+            return list.value.filter(v => v.state !== 2 /* DESTROYED */);
+        });
+        const botToTop = computed(() => {
             // eslint-disable-next-line no-prototype-builtins
-            return this.styles.hasOwnProperty('bottom');
-        },
-    },
-    mounted() {
-        events.on('add', this.addItem);
-        events.on('close', this.closeItem);
-    },
-    methods: {
-        destroyIfNecessary(item) {
-            this.$emit('click', item);
-            if (this.closeOnClick) {
-                this.destroy(item);
+            return styles.value.hasOwnProperty('bottom');
+        });
+        onMounted(() => {
+            events.on('add', addItem);
+            events.on('close', closeItem);
+        });
+        const destroyIfNecessary = (item) => {
+            emit('click', item);
+            if (closeOnClick.value) {
+                destroy(item);
             }
-        },
-        pauseTimeout() {
+        };
+        const pauseTimeout = () => {
             var _a;
-            if (this.pauseOnHover) {
-                (_a = this.timerControl) === null || _a === void 0 ? void 0 : _a.pause();
+            if (pauseOnHover.value) {
+                (_a = timerControl.value) === null || _a === void 0 ? void 0 : _a.pause();
             }
-        },
-        resumeTimeout() {
+        };
+        const resumeTimeout = () => {
             var _a;
-            if (this.pauseOnHover) {
-                (_a = this.timerControl) === null || _a === void 0 ? void 0 : _a.resume();
+            if (pauseOnHover.value) {
+                (_a = timerControl.value) === null || _a === void 0 ? void 0 : _a.resume();
             }
-        },
-        addItem(event = {}) {
-            event.group || (event.group = '');
-            event.data || (event.data = {});
-            if (this.group !== event.group) {
+        };
+        const addItem = (event = {}) => {
+            var _a, _b;
+            (_a = event.group) !== null && _a !== void 0 ? _a : (event.group = '');
+            (_b = event.data) !== null && _b !== void 0 ? _b : (event.data = {});
+            if (group.value !== event.group) {
                 return;
             }
             if (event.clean || event.clear) {
-                this.destroyAll();
+                destroyAll();
                 return;
             }
-            const duration = typeof event.duration === 'number'
+            const _duration = typeof event.duration === 'number'
                 ? event.duration
-                : this.duration;
-            const speed = typeof event.speed === 'number'
+                : duration.value;
+            const _speed = typeof event.speed === 'number'
                 ? event.speed
-                : this.speed;
-            const ignoreDuplicates = typeof event.ignoreDuplicates === 'boolean'
+                : speed.value;
+            const _ignoreDuplicates = typeof event.ignoreDuplicates === 'boolean'
                 ? event.ignoreDuplicates
-                : this.ignoreDuplicates;
+                : ignoreDuplicates.value;
             const { title, text, type, data, id } = event;
             const item = {
                 id: id || Id(),
                 title,
                 text,
                 type,
-                state: STATE.IDLE,
-                speed,
-                length: duration + 2 * speed,
+                state: 0 /* IDLE */,
+                speed: _speed,
+                length: _duration + 2 * _speed,
                 data,
             };
-            if (duration >= 0) {
-                this.timerControl = new Timer(() => this.destroy(item), item.length, item);
+            if (_duration >= 0) {
+                timerControl.value = new Timer(() => destroy(item), item.length, item);
             }
-            const direction = this.reverse
-                ? !this.botToTop
-                : this.botToTop;
+            const direction = reverse.value
+                ? !botToTop.value
+                : botToTop.value;
             let indexToDestroy = -1;
-            const isDuplicate = this.active.some(i => {
+            const isDuplicate = active.value.some(i => {
                 return i.title === event.title && i.text === event.text;
             });
-            const canAdd = ignoreDuplicates ? !isDuplicate : true;
+            const canAdd = _ignoreDuplicates ? !isDuplicate : true;
             if (!canAdd) {
                 return;
             }
             if (direction) {
-                this.list.push(item);
-                if (this.active.length > this.max) {
+                list.value.push(item);
+                if (active.value.length > max.value) {
                     indexToDestroy = 0;
                 }
             }
             else {
-                this.list.unshift(item);
-                if (this.active.length > this.max) {
-                    indexToDestroy = this.active.length - 1;
+                list.value.unshift(item);
+                if (active.value.length > max.value) {
+                    indexToDestroy = active.value.length - 1;
                 }
             }
             if (indexToDestroy !== -1) {
-                this.destroy(this.active[indexToDestroy]);
+                destroy(active.value[indexToDestroy]);
             }
-        },
-        closeItem(id) {
-            this.destroyById(id);
-        },
-        notifyClass(item) {
+        };
+        const closeItem = (id) => {
+            destroyById(id);
+        };
+        const notifyClass = (item) => {
             var _a;
             return [
                 'vue-notification-template',
-                this.classes,
+                classes.value,
                 (_a = item.type) !== null && _a !== void 0 ? _a : '',
             ];
-        },
-        notifyWrapperStyle(item) {
-            return this.isVA
+        };
+        const notifyWrapperStyle = (item) => {
+            return isVA.value
                 ? null
                 : { transition: `all ${item.speed}ms` };
-        },
-        destroy(item) {
+        };
+        const destroy = (item) => {
             clearTimeout(item.timer);
-            item.state = STATE.DESTROYED;
-            if (!this.isVA) {
-                this.clean();
+            item.state = 2 /* DESTROYED */;
+            if (!isVA.value) {
+                clean();
             }
-            this.$emit('destroy', item);
-        },
-        destroyById(id) {
-            const item = this.list.find(v => v.id === id);
+            emit('destroy', item);
+        };
+        const destroyById = (id) => {
+            const item = list.value.find(v => v.id === id);
             if (item) {
-                this.destroy(item);
+                destroy(item);
             }
-        },
-        destroyAll() {
-            this.active.forEach(this.destroy);
-        },
-        getAnimation(index, el) {
+        };
+        const destroyAll = () => {
+            active.value.forEach(destroy);
+        };
+        const getAnimation = (index, el) => {
             var _a;
-            const animation = (_a = this.animation) === null || _a === void 0 ? void 0 : _a[index];
-            return typeof animation === 'function'
-                ? animation.call(this, el)
-                : animation;
-        },
-        enter(el, complete) {
-            if (!this.isVA) {
+            const _animation = (_a = animation.value) === null || _a === void 0 ? void 0 : _a[index];
+            return typeof _animation === 'function'
+                ? _animation.call(this, el)
+                : _animation;
+        };
+        const enter = (el, complete) => {
+            var _a;
+            if (!isVA.value) {
                 return;
             }
-            const animation = this.getAnimation('enter', el);
-            this.velocity(el, animation, {
-                duration: this.speed,
+            const _animation = getAnimation('enter', el);
+            (_a = velocity.value) === null || _a === void 0 ? void 0 : _a.call(velocity, el, _animation, {
+                duration: speed.value,
                 complete,
             });
-        },
-        leave(el, complete) {
-            if (!this.isVA) {
+        };
+        const leave = (el, complete) => {
+            var _a;
+            if (!isVA.value) {
                 return;
             }
-            const animation = this.getAnimation('leave', el);
-            this.velocity(el, animation, {
-                duration: this.speed,
+            const _animation = getAnimation('leave', el);
+            (_a = velocity.value) === null || _a === void 0 ? void 0 : _a.call(velocity, el, _animation, {
+                duration: speed.value,
                 complete,
             });
-        },
-        clean() {
-            this.list = this.list.filter(v => v.state !== STATE.DESTROYED);
-        },
-    },
+        };
+        const clean = () => {
+            list.value = list.value.filter(v => v.state !== 2 /* DESTROYED */);
+        };
+        return (_ctx, _cache) => {
+            return (openBlock(), createBlock("div", {
+                class: "vue-notification-group",
+                style: unref(styles)
+            }, [
+                renderSlot(_ctx.$slots, "before", {
+                    list: list.value,
+                    closeAll: destroyAll
+                }),
+                (openBlock(), createBlock(resolveDynamicComponent(unref(componentName)), {
+                    name: unref(animationName),
+                    onEnter: enter,
+                    onLeave: leave,
+                    onAfterLeave: clean
+                }, {
+                    default: withCtx(() => [
+                        (openBlock(true), createBlock(Fragment, null, renderList(unref(active), (item) => {
+                            return (openBlock(), createBlock("div", {
+                                key: item.id,
+                                class: "vue-notification-wrapper",
+                                style: notifyWrapperStyle(item),
+                                "data-id": item.id,
+                                onMouseenter: pauseTimeout,
+                                onMouseleave: resumeTimeout
+                            }, [
+                                renderSlot(_ctx.$slots, "body", {
+                                    class: [unref(classes), item.type],
+                                    item: item,
+                                    close: () => destroy(item)
+                                }, () => [
+                                    createCommentVNode(" Default slot template "),
+                                    createVNode("div", {
+                                        class: notifyClass(item),
+                                        onClick: ($event) => (destroyIfNecessary(item))
+                                    }, [
+                                        (item.title)
+                                            ? (openBlock(), createBlock("div", {
+                                                key: 0,
+                                                class: "notification-title",
+                                                innerHTML: item.title
+                                            }, null, 8 /* PROPS */, ["innerHTML"]))
+                                            : createCommentVNode("v-if", true),
+                                        createVNode("div", {
+                                            class: "notification-content",
+                                            innerHTML: item.text
+                                        }, null, 8 /* PROPS */, ["innerHTML"])
+                                    ], 10 /* CLASS, PROPS */, ["onClick"])
+                                ])
+                            ], 44 /* STYLE, PROPS, HYDRATE_EVENTS */, ["data-id"]));
+                        }), 128 /* KEYED_FRAGMENT */))
+                    ]),
+                    _: 3 /* FORWARDED */
+                }, 8 /* PROPS */, ["name"])),
+                renderSlot(_ctx.$slots, "after", {
+                    list: list.value,
+                    closeAll: destroyAll
+                })
+            ], 4 /* STYLE */));
+        };
+    }
 });
-
-function render(_ctx, _cache, $props, $setup, $data, $options) {
-  return (openBlock(), createBlock("div", {
-    class: "vue-notification-group",
-    style: _ctx.styles
-  }, [
-    (openBlock(), createBlock(resolveDynamicComponent(_ctx.componentName), {
-      name: _ctx.animationName,
-      onEnter: _ctx.enter,
-      onLeave: _ctx.leave,
-      onAfterLeave: _ctx.clean
-    }, {
-      default: withCtx(() => [
-        (openBlock(true), createBlock(Fragment, null, renderList(_ctx.active, (item) => {
-          return (openBlock(), createBlock("div", {
-            key: item.id,
-            class: "vue-notification-wrapper",
-            style: _ctx.notifyWrapperStyle(item),
-            "data-id": item.id,
-            onMouseenter: _cache[1] || (_cache[1] = (...args) => (_ctx.pauseTimeout && _ctx.pauseTimeout(...args))),
-            onMouseleave: _cache[2] || (_cache[2] = (...args) => (_ctx.resumeTimeout && _ctx.resumeTimeout(...args)))
-          }, [
-            renderSlot(_ctx.$slots, "body", {
-              class: [_ctx.classes, item.type],
-              item: item,
-              close: () => _ctx.destroy(item)
-            }, () => [
-              createCommentVNode(" Default slot template "),
-              createVNode("div", {
-                class: _ctx.notifyClass(item),
-                onClick: $event => (_ctx.destroyIfNecessary(item))
-              }, [
-                (item.title)
-                  ? (openBlock(), createBlock("div", {
-                      key: 0,
-                      class: "notification-title",
-                      innerHTML: item.title
-                    }, null, 8 /* PROPS */, ["innerHTML"]))
-                  : createCommentVNode("v-if", true),
-                createVNode("div", {
-                  class: "notification-content",
-                  innerHTML: item.text
-                }, null, 8 /* PROPS */, ["innerHTML"])
-              ], 10 /* CLASS, PROPS */, ["onClick"])
-            ])
-          ], 44 /* STYLE, PROPS, HYDRATE_EVENTS */, ["data-id"]))
-        }), 128 /* KEYED_FRAGMENT */))
-      ]),
-      _: 3 /* FORWARDED */
-    }, 8 /* PROPS */, ["name", "onEnter", "onLeave", "onAfterLeave"]))
-  ], 4 /* STYLE */))
-}
 
 function styleInject(css, ref) {
   if ( ref === void 0 ) ref = {};
@@ -543,14 +484,16 @@ function styleInject(css, ref) {
 var css_248z = "\n.vue-notification-group {\n  display: block;\n  position: fixed;\n  z-index: 5000;\n}\n.vue-notification-wrapper {\n  display: block;\n  overflow: hidden;\n  width: 100%;\n  margin: 0;\n  padding: 0;\n}\n.notification-title {\n  font-weight: 600;\n}\n.vue-notification-template {\n  display: block;\n  box-sizing: border-box;\n  background: white;\n  text-align: left;\n}\n.vue-notification {\n  display: block;\n  box-sizing: border-box;\n  text-align: left;\n  font-size: 12px;\n  padding: 10px;\n  margin: 0 5px 5px;\n\n  color: white;\n  background: #44A4FC;\n  border-left: 5px solid #187FE7;\n}\n.vue-notification.warn {\n  background: #ffb648;\n  border-left-color: #f48a06;\n}\n.vue-notification.error {\n  background: #E54D42;\n  border-left-color: #B82E24;\n}\n.vue-notification.success {\n  background: #68CD86;\n  border-left-color: #42A85F;\n}\n.vn-fade-enter-active, .vn-fade-leave-active, .vn-fade-move  {\n  transition: all .5s;\n}\n.vn-fade-enter-from, .vn-fade-leave-to {\n  opacity: 0;\n}\n\n";
 styleInject(css_248z);
 
-script.render = render;
 script.__file = "src/Notifications.vue";
+
+const params = new Map();
 
 const notify = (args) => {
     if (typeof args === 'string') {
         args = { title: '', text: args };
     }
     if (typeof args === 'object') {
+        console.log(args);
         events.emit('add', args);
     }
 };

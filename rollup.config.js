@@ -18,6 +18,7 @@ export default {
       format: 'es',
     },
   ],
+
   plugins: [
     vue({
       preprocessStyles: true,

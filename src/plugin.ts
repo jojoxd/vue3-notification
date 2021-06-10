@@ -1,5 +1,5 @@
 
-import { App } from 'vue';
+import { App } from 'vue-demi';
 import Notifications from './Notifications.vue';
 import { params } from './params';
 import { NotificationsPluginOptions } from './types';
